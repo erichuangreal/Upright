@@ -1,2 +1,1 @@
-
 # deltahacks2026
