@@ -13,7 +13,10 @@ const WebSocket = require("ws");
 const fs = require("fs");
 
 // Gemini helpers
-const { buildTelemetrySummary, runGemini } = require("./gemini");
+const { buildTelemetrySummary, runGemini, generateInsight } = require("./gemini");
+// Window management and feature extraction
+const { WindowManager } = require("./windowManager");
+const { computeWindowFeatures } = require("./featureExtraction");
 
 const PORT = Number(process.env.PORT || 8080);
 
@@ -32,6 +35,14 @@ let history2 = [];
 
 let latest1 = { pitch: 0, ts: Date.now(), source: 1 };
 let latest2 = { pitch: 0, ts: Date.now(), source: 2 };
+
+// Window manager for 10-second insights (testing mode)
+const windowManager = new WindowManager();
+
+// Insight storage (in-memory)
+let latestInsight = null;
+const insightHistory = []; // Last ~360 windows (60 minutes of 10-second windows)
+const MAX_INSIGHT_HISTORY = 360;
 
 // ---- Gemini config knobs (safe defaults) ----
 const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-1.5-flash";
@@ -61,6 +72,7 @@ function normalizeSample(body) {
   const pitch = toNum(body?.pitch);
   if (pitch === undefined) return { ok: false, error: "pitch must be a number" };
 
+  // Ensure every sample has a timestamp
   const ts = toNum(body?.ts) ?? Date.now();
 
   const sample = {
@@ -105,7 +117,178 @@ function broadcast(obj) {
 wss.on("connection", (ws) => {
   ws.send(JSON.stringify(latest1));
   ws.send(JSON.stringify(latest2));
+  // Send latest insight if available
+  if (latestInsight) {
+    ws.send(JSON.stringify(latestInsight));
+  }
 });
+
+/**
+ * Process a closed window: compute features, generate insight, broadcast.
+ */
+async function processClosedWindow(closedWindowId) {
+  try {
+    const window = windowManager.getWindow(closedWindowId);
+    if (!window) {
+      console.log(`[Window] No data for closed window ${closedWindowId}`);
+      return;
+    }
+
+    // Compute features from window samples
+    const features = computeWindowFeatures(window);
+    
+    // Generate insight using Gemini (if API key available)
+    let insight = null;
+    if (process.env.GEMINI_API_KEY) {
+      try {
+        insight = await generateInsight(features);
+      } catch (err) {
+        console.error(`[Window] Gemini error for ${closedWindowId}:`, err.message);
+        // Fall back to basic insight
+        insight = createFallbackInsight(features);
+      }
+    } else {
+      insight = createFallbackInsight(features);
+    }
+
+    // Create insight object
+    const insightObj = {
+      type: "insight_update",
+      windowStart: features.windowStart,
+      windowEnd: features.windowEnd,
+      rating: insight.rating,
+      summary: insight.summary,
+      issues: insight.issues || [],
+      suggestions: insight.suggestions || [],
+      tip: insight.tip,
+      confidence: insight.confidence,
+      features: {
+        sensor1: features.sensor1,
+        sensor2: features.sensor2,
+        alignment: features.alignment,
+        quality: features.quality,
+      },
+    };
+
+    // Update latest insight and history
+    latestInsight = insightObj;
+    insightHistory.push(insightObj);
+    if (insightHistory.length > MAX_INSIGHT_HISTORY) {
+      insightHistory.shift();
+    }
+
+    // Broadcast to WebSocket clients
+    broadcast(insightObj);
+    
+    console.log(`[Window] Processed ${closedWindowId}: rating=${insight.rating}, confidence=${insight.confidence}`);
+    
+    // Clean up old windows
+    windowManager.trimHistory(360); // Keep last 360 windows (60 minutes of 10-second windows)
+    windowManager.removeWindow(closedWindowId);
+  } catch (err) {
+    console.error(`[Window] Error processing ${closedWindowId}:`, err);
+  }
+}
+
+/**
+ * Create a fallback insight when Gemini is unavailable.
+ * Includes variation to avoid repetitive messages.
+ */
+function createFallbackInsight(features) {
+  const avgSlouch = features.sensor1.hasData && features.sensor2.hasData
+    ? (features.sensor1.slouchPercent + features.sensor2.slouchPercent) / 2
+    : features.sensor1.hasData
+    ? features.sensor1.slouchPercent
+    : features.sensor2.hasData
+    ? features.sensor2.slouchPercent
+    : 0;
+  
+  const totalSamples = features.sensor1.sampleCount + features.sensor2.sampleCount;
+  const rating = avgSlouch >= 60 ? "poor" : avgSlouch >= 25 ? "fair" : "good";
+  
+  // Add variation using a simple hash of sample count
+  const variation = totalSamples % 4;
+  
+  // Different summary variations (without angle references)
+  const summaries = {
+    good: [
+      "Your posture looks excellent! You're maintaining good alignment throughout.",
+      "Great job! Your posture is well-aligned and consistent.",
+      "Excellent posture maintenance. Keep it up!",
+      "Your alignment is looking strong. Well done!",
+    ],
+    fair: [
+      "Your posture could use some attention. You're slouching forward occasionally.",
+      "You're showing some forward lean. Try to straighten up when you notice it.",
+      "Moderate slouching detected. Focus on keeping your shoulders back.",
+      "Your posture is okay but could be improved. Be mindful of forward lean.",
+    ],
+    poor: [
+      "You're slouching forward quite often. Try to sit up straighter.",
+      "Frequent forward lean detected. Make an effort to correct your posture.",
+      "You're leaning forward most of the time. Focus on keeping your back straight.",
+      "Your posture needs attention. You're slouching forward regularly.",
+    ],
+  };
+  
+  const issuesGood = [];
+  const issuesFair = [
+    "You're leaning forward occasionally",
+    "Some forward slouching detected",
+    "Posture could be more consistent",
+    "Occasional forward lean",
+  ];
+  const issuesPoor = [
+    "You're slouching forward frequently",
+    "Frequent forward lean detected",
+    "Posture needs improvement",
+    "Regular forward slouching",
+  ];
+  
+  const suggestionsFair = [
+    "Try a 20–30s posture reset: shoulders back, chin neutral, sit tall",
+    "Take breaks to check your posture and straighten up",
+    "Adjust your screen height so you can see without leaning forward",
+    "Consider using lumbar support to help maintain alignment",
+  ];
+  
+  const suggestionsPoor = [
+    "Take frequent breaks to reset your posture: shoulders back, chin neutral",
+    "Raise your screen to eye level to reduce forward lean",
+    "Use lumbar support and adjust your chair height",
+    "Set reminders to check and correct your posture every 30 minutes",
+  ];
+  
+  const tipsGood = [
+    "Keep up the great work maintaining good posture!",
+    "You're doing well! Continue to be mindful of your alignment.",
+    "Excellent posture habits! Keep them up.",
+    "Great job! Your consistent good posture is paying off.",
+  ];
+  
+  const tipsFair = [
+    "Set a reminder every 30 minutes to check your posture",
+    "Try posture exercises to strengthen your back muscles",
+    "Be more mindful of when you start to lean forward",
+    "Take a quick posture break right now - sit tall!",
+  ];
+  
+  const tipsPoor = [
+    "Start by setting a reminder every 20 minutes to check your posture",
+    "Try a posture reset right now: sit tall, shoulders back",
+    "Consider ergonomic adjustments to your workspace",
+    "Focus on small, frequent posture corrections throughout the day",
+  ];
+  
+  return {
+    rating: rating,
+    summary: summaries[rating][variation],
+    issues: rating === "good" ? issuesGood : rating === "fair" ? [issuesFair[variation]] : [issuesPoor[variation]],
+    suggestions: rating === "good" ? ["Keep maintaining good posture!"] : rating === "fair" ? [suggestionsFair[variation], suggestionsFair[(variation + 1) % suggestionsFair.length]] : [suggestionsPoor[variation], suggestionsPoor[(variation + 1) % suggestionsPoor.length]],
+    tip: rating === "good" ? tipsGood[variation] : rating === "fair" ? tipsFair[variation] : tipsPoor[variation],
+    confidence: features.quality.dataQuality === "good" ? "high" : features.quality.dataQuality === "partial" ? "medium" : "low",
+  };
+}
 
 function handleIncoming(reqBody, source, telemetryPath, historyArr, setLatest) {
   if (typeof reqBody?.event === "string") {
@@ -134,6 +317,15 @@ function handleIncoming(reqBody, source, telemetryPath, historyArr, setLatest) {
   historyArr.push(msg);
   if (historyArr.length > MAX_BUFFER) historyArr.shift();
 
+  // Ingest sample into window manager and check if a window closed
+  const closedWindowId = windowManager.ingestSample(source, msg);
+  if (closedWindowId) {
+    // Process the closed window asynchronously (don't block the request)
+    processClosedWindow(closedWindowId).catch((err) => {
+      console.error(`[Window] Async error processing ${closedWindowId}:`, err);
+    });
+  }
+
   return { ok: true, status: 200, payload: { ok: true } };
 }
 
@@ -153,6 +345,15 @@ app.get("/latest1", (req, res) => res.json(latest1));
 app.get("/latest2", (req, res) => res.json(latest2));
 app.get("/history1", (req, res) => res.json(history1));
 app.get("/history2", (req, res) => res.json(history2));
+
+// Insight endpoints
+app.get("/insights/latest", (req, res) => {
+  res.json(latestInsight || { error: "No insights yet" });
+});
+
+app.get("/insights/history", (req, res) => {
+  res.json(insightHistory);
+});
 
 /**
  * Gemini Health Check
@@ -295,6 +496,8 @@ app.get("/", (req, res) => {
       `POST /imu2 (source 2) -> ${path.basename(TELEMETRY2_PATH)}\n` +
       `GET  /gemini/health\n` +
       `POST /gemini/analyze\n` +
+      `GET  /insights/latest\n` +
+      `GET  /insights/history\n` +
       `WS: ws://localhost:${PORT}\n`
   );
 });

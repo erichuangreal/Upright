@@ -54,7 +54,7 @@ struct ContentView: View {
                 headerView
                 sceneView
                 controlsView
-                InsightCard()
+                InsightCard(insight: postureVM.latestInsight)
                     .padding(.horizontal, 16)
                     .padding(.bottom, 20)
             }
@@ -153,25 +153,126 @@ struct ContentView: View {
 
 // MARK: - Insight Card
 struct InsightCard: View {
+    let insight: Insight?
+    
+    private var ratingColor: Color {
+        guard let insight = insight else { return .gray }
+        switch insight.rating {
+        case .good: return .green
+        case .fair: return .orange
+        case .poor: return .red
+        }
+    }
+    
+    private var ratingIcon: String {
+        guard let insight = insight else { return "lightbulb" }
+        switch insight.rating {
+        case .good: return "checkmark.circle.fill"
+        case .fair: return "exclamationmark.triangle.fill"
+        case .poor: return "xmark.circle.fill"
+        }
+    }
+    
     var body: some View {
-        HStack(alignment: .top, spacing: 12) {
-            Image(systemName: "lightbulb.fill")
-                .font(.system(size: 16))
-                .foregroundColor(.gray)
-            
-            VStack(alignment: .leading, spacing: 6) {
-                Text("INSIGHT")
-                    .font(.system(size: 11, weight: .semibold, design: .rounded))
-                    .foregroundColor(.gray)
-                    .tracking(1)
+        VStack(alignment: .leading, spacing: 12) {
+            // Header with rating
+            HStack(alignment: .center, spacing: 12) {
+                Image(systemName: ratingIcon)
+                    .font(.system(size: 18))
+                    .foregroundColor(ratingColor)
                 
-                Text("Keep your shoulders back and aligned. Take a moment to straighten your spine and relax your neck.")
-                    .font(.system(size: 15, weight: .regular))
-                    .foregroundColor(.black.opacity(0.85))
-                    .lineSpacing(3)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("POSTURE INSIGHT")
+                        .font(.system(size: 11, weight: .semibold, design: .rounded))
+                        .foregroundColor(.gray)
+                        .tracking(1)
+                    
+                    if let insight = insight {
+                        Text(insight.rating.rawValue.uppercased())
+                            .font(.system(size: 13, weight: .bold, design: .rounded))
+                            .foregroundColor(ratingColor)
+                        
+                        // Confidence indicator
+                        HStack(spacing: 4) {
+                            Circle()
+                                .fill(insight.confidence == .high ? Color.green : insight.confidence == .medium ? Color.orange : Color.gray)
+                                .frame(width: 6, height: 6)
+                            Text(insight.confidence.rawValue.capitalized + " confidence")
+                                .font(.system(size: 9, weight: .light))
+                                .foregroundColor(.gray.opacity(0.7))
+                        }
+                    }
+                }
+                
+                Spacer()
             }
             
-            Spacer()
+            if let insight = insight {
+                // Summary (larger text)
+                Text(insight.summary)
+                    .font(.system(size: 17, weight: .regular))
+                    .foregroundColor(.black.opacity(0.85))
+                    .lineSpacing(4)
+                    .padding(.bottom, 4)
+                
+                // Issues (larger text)
+                if !insight.issues.isEmpty {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("Issues:")
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundColor(.black.opacity(0.7))
+                        ForEach(insight.issues, id: \.self) { issue in
+                            HStack(alignment: .top, spacing: 8) {
+                                Text("•")
+                                    .foregroundColor(.orange)
+                                    .font(.system(size: 16))
+                                Text(issue)
+                                    .font(.system(size: 15))
+                                    .foregroundColor(.black.opacity(0.75))
+                            }
+                        }
+                    }
+                    .padding(.top, 4)
+                }
+                
+                // Suggestions (larger text)
+                if !insight.suggestions.isEmpty {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("Suggestions:")
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundColor(.black.opacity(0.7))
+                        ForEach(insight.suggestions, id: \.self) { suggestion in
+                            HStack(alignment: .top, spacing: 8) {
+                                Text("•")
+                                    .foregroundColor(.blue)
+                                    .font(.system(size: 16))
+                                Text(suggestion)
+                                    .font(.system(size: 15))
+                                    .foregroundColor(.black.opacity(0.75))
+                            }
+                        }
+                    }
+                    .padding(.top, 4)
+                }
+                
+                // Tip (larger text)
+                HStack(alignment: .top, spacing: 10) {
+                    Image(systemName: "lightbulb.fill")
+                        .font(.system(size: 14))
+                        .foregroundColor(.yellow)
+                    Text(insight.tip)
+                        .font(.system(size: 15, weight: .medium, design: .rounded))
+                        .foregroundColor(.black.opacity(0.8))
+                        .italic()
+                }
+                .padding(.top, 6)
+            } else {
+                // Placeholder when no insight available
+                Text("Waiting for posture analysis...")
+                    .font(.system(size: 15, weight: .regular))
+                    .foregroundColor(.gray)
+                    .lineSpacing(3)
+            }
         }
         .padding(16)
         .background(

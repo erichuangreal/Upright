@@ -10,6 +10,10 @@ final class PostureViewModel: ObservableObject {
 
     // Events
     @Published var lastEvent: String?
+    
+    // Insights
+    @Published var latestInsight: Insight?
+    @Published var insightHistory: [Insight] = []
 
     private let ws = TelemetryWebSocket()
 
@@ -27,7 +31,24 @@ final class PostureViewModel: ObservableObject {
     }
 
     private func handle(_ msg: TelemetryMessage) {
-
+        // Handle insight updates
+        if msg.type == "insight_update" || (msg.kind == nil && msg.type != nil) {
+            if let insight = Insight.from(message: msg) {
+                latestInsight = insight
+                // Add to history if not already present
+                if !insightHistory.contains(where: { $0.id == insight.id }) {
+                    insightHistory.append(insight)
+                    // Keep only last 48 insights (24 hours)
+                    if insightHistory.count > 48 {
+                        insightHistory.removeFirst()
+                    }
+                    // Sort by window start (most recent first)
+                    insightHistory.sort { $0.windowStart > $1.windowStart }
+                }
+            }
+            return
+        }
+        
         // Events
         if msg.kind == "event" {
             lastEvent = msg.event
