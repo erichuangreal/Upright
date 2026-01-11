@@ -124,14 +124,3 @@ let targetColor = isGoodPosture ? UIColor.green : UIColor.red
 1. **Good posture:** Keep both sensors at similar angles → GREEN
 2. **Bad posture:** Tilt upper sensor forward (neck crane) → RED
 3. **Slouching:** Upper sensor tilts more than lower → RED
-
-## What Wasn't Changed
-
-✅ All your friend's code remains intact:
-- `PostureViewModel.swift` - unchanged
-- `TelemetryWebSocket.swift` - unchanged  
-- `TelemetryMessage.swift` - unchanged
-- All existing 3D torso code - unchanged
-- Sensor data handling - unchanged
-
-Only **added** the glowing back feature on top of existing code!
