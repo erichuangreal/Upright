@@ -36,7 +36,6 @@ struct ContentView: View {
             .onAppear(perform: handleAppear)
             .onDisappear(perform: handleDisappear)
             .onChange(of: postureVM.upperPitch, perform: handlePitchChange)
-            .onChange(of: postureVM.upperRoll, perform: handleRollChange)
     }
     
     private func handleAppear() {
