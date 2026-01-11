@@ -29,7 +29,7 @@ static inline void write8(uint8_t reg, uint8_t val) {
   Wire.endTransmission();
 }
 
-// MMA7660 gives 6-bit signed (-32..31) in bits[5:0]
+// MMA7660 gives 6-bit signedd
 static inline int8_t decode6(uint8_t raw) {
   raw &= 0x3F;
   if (raw & 0x20) raw = raw - 0x40; // sign extend
@@ -58,9 +58,8 @@ void setup() {
   Serial.begin(115200);
   delay(200);
 
-  // Standby -> set sample rate -> active
   write8(REG_MODE, 0x00);
-  write8(REG_SR,   0x00); // fast sample rate (datasheet: 120 Hz)
+  write8(REG_SR,   0x00);
   write8(REG_MODE, 0x01);
 
   Serial.println("MMA7660 streaming raw accel + pitch JSON @ ~20Hz");
@@ -85,8 +84,6 @@ void loop() {
     return;
   }
 
-  // MMA7660 is ±1.5g mapped to 6-bit signed => ~21.33 counts per g (approx).
-  // For posture angles, absolute scaling isn't critical; ratios matter.
   const float COUNTS_PER_G = 21.33f;
 
   float ax = x6 / COUNTS_PER_G;

@@ -1,20 +1,9 @@
-// serial-bridge.js
-// Reads newline-delimited JSON from Arduino over USB Serial (COM port)
-// and POSTs each JSON object to your Node backend.
-//
-// Usage (PowerShell):
-//   & "C:\Program Files\nodejs\node.exe" serial-bridge.js COM8 115200 localhost 8080 /imu2
-//
-// Notes:
-// - Close Arduino Serial Monitor/Plotter first, or COM port will be "busy".
-// - Your Arduino should print ONE JSON object per line.
-
 const { SerialPort } = require("serialport");
 const { ReadlineParser } = require("@serialport/parser-readline");
 const http = require("http");
 
 // Args
-const PORT_NAME = process.argv[2]; // e.g. COM5 / COM8
+const PORT_NAME = process.argv[2]; // COM5 / COM8
 const BAUD = Number(process.argv[3] || 115200);
 const POST_HOST = process.argv[4] || "localhost";
 const POST_PORT = Number(process.argv[5] || 8080);
@@ -73,15 +62,11 @@ setInterval(() => {
 parser.on("data", (line) => {
     const s = line.trim();
 
-    // Ignore non-JSON noise
     if (!s.startsWith("{") || !s.endsWith("}")) return;
 
     try {
         const obj = JSON.parse(s);
 
-        // Accept either:
-        //  - normal samples (pitch number)
-        //  - calibration/event messages (event string)
         const isSample = typeof obj.pitch === "number";
         const isEvent = typeof obj.event === "string";
 

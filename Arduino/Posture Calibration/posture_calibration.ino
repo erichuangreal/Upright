@@ -1,36 +1,23 @@
 #include <Wire.h>
 #include <math.h>
 
-// =====================
-// MMA7660 Accelerometer
-// =====================
 #define MMA7660_ADDR ((uint8_t)0x4C)
 
-// MMA7660 registers
 #define REG_XOUT ((uint8_t)0x00)
 #define REG_YOUT ((uint8_t)0x01)
 #define REG_ZOUT ((uint8_t)0x02)
 #define REG_MODE ((uint8_t)0x07)
 #define REG_SR ((uint8_t)0x08)
 
-// =====================
-// Grove Button (D2)
-// =====================
 #define BUTTON_PIN 2
 
-// Calibration params
-const uint8_t CALIB_SECONDS = 5;              // sample count (1 per second)
-const unsigned long CALIB_INTERVAL_MS = 1000; // 1 second
+const uint8_t CALIB_SECONDS = 5;
+const unsigned long CALIB_INTERVAL_MS = 1000;
 
-// Debounce
 const unsigned long DEBOUNCE_MS = 35;
 
-// Sensor streaming rate
-const unsigned long STREAM_INTERVAL_MS = 50; // 20 Hz (50ms)
+const unsigned long STREAM_INTERVAL_MS = 50;
 
-// =====================
-// I2C Helpers
-// =====================
 static inline uint8_t read8(uint8_t reg)
 {
     Wire.beginTransmission(MMA7660_ADDR);
@@ -50,12 +37,11 @@ static inline void write8(uint8_t reg, uint8_t val)
     Wire.endTransmission();
 }
 
-// MMA7660 gives 6-bit signed (-32..31) in bits[5:0]
 static inline int8_t decode6(uint8_t raw)
 {
     raw &= 0x3F;
     if (raw & 0x20)
-        raw = raw - 0x40; // sign extend
+        raw = raw - 0x40;
     return (int8_t)raw;
 }
 
@@ -79,10 +65,6 @@ static inline float ema(float prev, float cur, float alpha)
     return alpha * cur + (1.0f - alpha) * prev;
 }
 
-// =====================
-// Button (debounced click)
-// =====================
-// INPUT_PULLUP => pressed = LOW
 static inline bool rawPressed()
 {
     return digitalRead(BUTTON_PIN) == LOW;
@@ -97,28 +79,22 @@ bool pollButtonClick(unsigned long nowMs)
 {
     bool raw = rawPressed();
 
-    // track raw changes
     if (raw != lastRawPressed)
     {
         lastRawPressed = raw;
         lastRawChangeMs = nowMs;
     }
 
-    // commit to debounced if stable long enough
     if ((nowMs - lastRawChangeMs) >= DEBOUNCE_MS)
     {
         debouncedPressed = raw;
     }
 
-    // click = rising edge: not pressed -> pressed
     bool click = (!lastDebouncedPressed && debouncedPressed);
     lastDebouncedPressed = debouncedPressed;
     return click;
 }
 
-// =====================
-// Calibration state
-// =====================
 bool calibrating = false;
 uint8_t calibCount = 0;
 float calibSum = 0.0f;
@@ -133,7 +109,7 @@ void startCalibration(unsigned long nowMs)
     calibrating = true;
     calibCount = 0;
     calibSum = 0.0f;
-    lastCalibSampleMs = nowMs; // start timer now
+    lastCalibSampleMs = nowMs;
 
     Serial.print("{\"event\":\"calibration_start\",\"seconds\":");
     Serial.print(CALIB_SECONDS);
@@ -167,9 +143,6 @@ void finishCalibration(unsigned long nowMs)
     calibrating = false;
 }
 
-// =====================
-// Setup
-// =====================
 void setup()
 {
     Wire.begin();
@@ -178,29 +151,23 @@ void setup()
 
     pinMode(BUTTON_PIN, INPUT_PULLUP);
 
-    // Standby -> set sample rate -> active
     write8(REG_MODE, 0x00);
-    write8(REG_SR, 0x00); // fast sample rate (datasheet: 120 Hz)
+    write8(REG_SR, 0x00);
     write8(REG_MODE, 0x01);
 
     Serial.println("MMA7660 streaming @ 20Hz. CLICK button (D2) to calibrate for 5 seconds.");
 }
 
-// =====================
-// Loop (non-blocking)
-// =====================
 void loop()
 {
     const unsigned long nowMs = millis();
 
-    // 1) Detect click frequently (no delay)
     bool clicked = pollButtonClick(nowMs);
     if (clicked && !calibrating)
     {
         startCalibration(nowMs);
     }
 
-    // 2) Read sensor & stream at 20Hz
     static unsigned long lastStreamMs = 0;
     if (nowMs - lastStreamMs >= STREAM_INTERVAL_MS)
     {
@@ -248,10 +215,9 @@ void loop()
         pitchPrev = pitch;
         prevMs = nowMs;
 
-        // 3) Calibration sampling: once per second while calibrating
         if (calibrating && (nowMs - lastCalibSampleMs >= CALIB_INTERVAL_MS))
         {
-            lastCalibSampleMs += CALIB_INTERVAL_MS; // keep stable cadence
+            lastCalibSampleMs += CALIB_INTERVAL_MS;
 
             calibSum += pitch_smooth;
             calibCount++;
@@ -270,7 +236,6 @@ void loop()
             }
         }
 
-        // Normal streaming output
         Serial.print("{\"ax\":");
         Serial.print(ax, 4);
         Serial.print(",\"ay\":");

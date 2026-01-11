@@ -1,12 +1,3 @@
-// server.js
-// Accepts:
-//  - normal IMU samples (must include pitch) -> logged + WS broadcast
-//  - event messages (must include event) -> logged + WS broadcast
-//
-// Endpoints:
-//   POST /imu  (source 1) -> telemetry.ndjson
-//   POST /imu2 (source 2) -> telemetry2.ndjson
-
 const http = require("http");
 const express = require("express");
 const cors = require("cors");
@@ -69,14 +60,12 @@ function normalizeEvent(body) {
   const event = typeof body?.event === "string" ? body.event : undefined;
   if (!event) return { ok: false, error: "event must be a string" };
 
-  // keep all fields, but make it explicit it's an event
   const ts = toNum(body?.ts) ?? Date.now();
   const msg = { ...body, kind: "event", ts };
 
   return { ok: true, msg };
 }
 
-// ---- WebSocket server ----
 const server = http.createServer(app);
 const wss = new WebSocket.Server({ server });
 
@@ -92,9 +81,7 @@ wss.on("connection", (ws) => {
   ws.send(JSON.stringify(latest2));
 });
 
-// ---- shared handler ----
 function handleIncoming(reqBody, source, telemetryPath, historyArr, setLatest) {
-  // event path
   if (typeof reqBody?.event === "string") {
     const norm = normalizeEvent(reqBody);
     if (!norm.ok) return { ok: false, status: 400, payload: norm };
@@ -106,11 +93,9 @@ function handleIncoming(reqBody, source, telemetryPath, historyArr, setLatest) {
     historyArr.push(msg);
     if (historyArr.length > MAX_BUFFER) historyArr.shift();
 
-    // don't overwrite latest pitch sample with events
     return { ok: true, status: 200, payload: { ok: true } };
   }
 
-  // sample path
   const norm = normalizeSample(reqBody);
   if (!norm.ok) return { ok: false, status: 400, payload: norm };
 
