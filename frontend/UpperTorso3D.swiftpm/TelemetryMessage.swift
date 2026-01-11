@@ -28,7 +28,7 @@ struct TelemetryMessage: Codable {
     // insight_update fields
     let windowStart: String?
     let windowEnd: String?
-    let rating: String?           // "good" | "fair" | "poor"
+    let rating: String?           // "good" | "fair" | "not_so_good" | "poor"
     let summary: String?
     let issues: [String]?
     let suggestions: [String]?

@@ -125,7 +125,7 @@ async function generateInsight(features) {
     "- If samples are few or noisy, lower confidence.",
     "- Do not mention medical diagnosis. This is educational feedback only.",
     "- DO NOT mention angles, degrees, or numeric thresholds (no '>=', '<', '°').",
-    "- Focus on natural language: 'slouching', 'forward lean', 'good alignment', etc.",
+    "- Focus on natural language: 'slouching', 'lean', 'good alignment', etc.",
     "- Keep language friendly and accessible, avoid technical measurements.",
     "- Rating: good = low slouch, fair = moderate slouch, poor = frequent slouching",
   ].join("\n");
@@ -159,7 +159,7 @@ async function generateInsight(features) {
   // Use the same variation logic as createFallbackInsight
   const totalSamples = features.sensor1.sampleCount + features.sensor2.sampleCount;
   const variation = totalSamples % 4;
-  const rating = avgSlouch >= 60 ? "poor" : avgSlouch >= 25 ? "fair" : "good";
+  const rating = avgSlouch >= 60 ? "poor" : avgSlouch >= 40 ? "not_so_good" : avgSlouch >= 15 ? "fair" : "good";
   
   const summaries = {
     good: [
@@ -169,45 +169,64 @@ async function generateInsight(features) {
       "Your alignment is looking strong. Well done!",
     ],
     fair: [
-      "Your posture could use some attention. You're slouching forward occasionally.",
-      "You're showing some forward lean. Try to straighten up when you notice it.",
+      "Your posture could use some attention. You're slouching occasionally.",
+      "You're showing some lean. Try to straighten up when you notice it.",
       "Moderate slouching detected. Focus on keeping your shoulders back.",
-      "Your posture is okay but could be improved. Be mindful of forward lean.",
+      "Your posture is okay but could be improved. Be mindful of lean.",
+    ],
+    not_so_good: [
+      "You're slouching noticeably. Try to sit up straighter.",
+      "Noticeable lean detected. Make an effort to correct your posture.",
+      "You're leaning often. Focus on keeping your back straight.",
+      "Your posture needs attention. You're slouching more than usual.",
     ],
     poor: [
-      "You're slouching forward quite often. Try to sit up straighter.",
-      "Frequent forward lean detected. Make an effort to correct your posture.",
-      "You're leaning forward most of the time. Focus on keeping your back straight.",
-      "Your posture needs attention. You're slouching forward regularly.",
+      "You're slouching quite often. Try to sit up straighter.",
+      "Frequent lean detected. Make an effort to correct your posture.",
+      "You're leaning most of the time. Focus on keeping your back straight.",
+      "Your posture needs attention. You're slouching regularly.",
     ],
   };
   
   const issuesGood = [];
   const issuesFair = [
-    "You're leaning forward occasionally",
-    "Some forward slouching detected",
+    "You're leaning occasionally",
+    "Some slouching detected",
     "Posture could be more consistent",
-    "Occasional forward lean",
+    "Occasional lean",
+  ];
+  const issuesNotSoGood = [
+    "You're leaning often",
+    "Noticeable slouching detected",
+    "Posture needs improvement",
+    "Regular lean",
   ];
   const issuesPoor = [
-    "You're slouching forward frequently",
-    "Frequent forward lean detected",
-    "Posture needs improvement",
-    "Regular forward slouching",
+    "You're slouching frequently",
+    "Frequent lean detected",
+    "Posture needs significant improvement",
+    "Persistent slouching",
   ];
   
   const suggestionsFair = [
     "Try a 20–30s posture reset: shoulders back, chin neutral, sit tall",
     "Take breaks to check your posture and straighten up",
-    "Adjust your screen height so you can see without leaning forward",
+    "Adjust your screen height so you can see without leaning",
     "Consider using lumbar support to help maintain alignment",
+  ];
+  
+  const suggestionsNotSoGood = [
+    "Take breaks to reset your posture: shoulders back, chin neutral, sit tall",
+    "Raise your screen to eye level to reduce lean",
+    "Use lumbar support and adjust your chair height",
+    "Set reminders to check and correct your posture every 15 minutes",
   ];
   
   const suggestionsPoor = [
     "Take frequent breaks to reset your posture: shoulders back, chin neutral",
-    "Raise your screen to eye level to reduce forward lean",
+    "Raise your screen to eye level to reduce lean",
     "Use lumbar support and adjust your chair height",
-    "Set reminders to check and correct your posture every 30 minutes",
+    "Set reminders to check and correct your posture every 15 minutes",
   ];
   
   const tipsGood = [
@@ -218,14 +237,21 @@ async function generateInsight(features) {
   ];
   
   const tipsFair = [
-    "Set a reminder every 30 minutes to check your posture",
+    "Set a reminder every 15 minutes to check your posture",
     "Try posture exercises to strengthen your back muscles",
-    "Be more mindful of when you start to lean forward",
+    "Be more mindful of when you start to lean",
     "Take a quick posture break right now - sit tall!",
   ];
   
+  const tipsNotSoGood = [
+    "Start by setting a reminder every 15 minutes to check your posture",
+    "Try a posture reset right now: sit tall, shoulders back",
+    "Consider ergonomic adjustments to your workspace",
+    "Focus on small, frequent posture corrections throughout the day",
+  ];
+  
   const tipsPoor = [
-    "Start by setting a reminder every 20 minutes to check your posture",
+    "Start by setting a reminder every 15 minutes to check your posture",
     "Try a posture reset right now: sit tall, shoulders back",
     "Consider ergonomic adjustments to your workspace",
     "Focus on small, frequent posture corrections throughout the day",
@@ -234,9 +260,9 @@ async function generateInsight(features) {
   const fallback = {
     rating: rating,
     summary: summaries[rating][variation],
-    issues: rating === "good" ? issuesGood : rating === "fair" ? [issuesFair[variation]] : [issuesPoor[variation]],
-    suggestions: rating === "good" ? ["Keep maintaining good posture!"] : rating === "fair" ? [suggestionsFair[variation], suggestionsFair[(variation + 1) % suggestionsFair.length]] : [suggestionsPoor[variation], suggestionsPoor[(variation + 1) % suggestionsPoor.length]],
-    tip: rating === "good" ? tipsGood[variation] : rating === "fair" ? tipsFair[variation] : tipsPoor[variation],
+    issues: rating === "good" ? issuesGood : rating === "fair" ? [issuesFair[variation]] : rating === "not_so_good" ? [issuesNotSoGood[variation]] : [issuesPoor[variation]],
+    suggestions: rating === "good" ? ["Keep maintaining good posture!"] : rating === "fair" ? [suggestionsFair[variation], suggestionsFair[(variation + 1) % suggestionsFair.length]] : rating === "not_so_good" ? [suggestionsNotSoGood[variation], suggestionsNotSoGood[(variation + 1) % suggestionsNotSoGood.length]] : [suggestionsPoor[variation], suggestionsPoor[(variation + 1) % suggestionsPoor.length]],
+    tip: rating === "good" ? tipsGood[variation] : rating === "fair" ? tipsFair[variation] : rating === "not_so_good" ? tipsNotSoGood[variation] : tipsPoor[variation],
     confidence: features.quality.dataQuality === "good" ? "high" : features.quality.dataQuality === "partial" ? "medium" : "low",
   };
   

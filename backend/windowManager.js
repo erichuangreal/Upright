@@ -1,18 +1,18 @@
 // windowManager.js
-// 10-second window tracking for posture insights (testing mode)
+// 15-second window tracking for posture insights
 
-const WINDOW_DURATION_MS = 10 * 1000; // 10 seconds in milliseconds
+const WINDOW_DURATION_MS = 15 * 1000; // 15 seconds in milliseconds
 
 /**
  * Get the window ID for a given timestamp.
- * Windows are aligned to 10-second boundaries (e.g., 00:00, 00:10, 00:20, 00:30, etc.).
+ * Windows are aligned to 15-second boundaries (e.g., 00:00, 00:15, 00:30, 00:45, etc.).
  */
 function getWindowId(ts) {
   const date = new Date(ts);
   const seconds = date.getSeconds();
-  const bucket = Math.floor(seconds / 10);
+  const bucket = Math.floor(seconds / 15);
   const windowStart = new Date(date);
-  windowStart.setSeconds(bucket * 10, 0);
+  windowStart.setSeconds(bucket * 15, 0);
   
   return windowStart.toISOString();
 }
@@ -38,6 +38,7 @@ class WindowManager {
   constructor() {
     this.currentWindowId = null;
     this.windows = new Map(); // windowId -> { sensor1: [], sensor2: [], start: ts, end: ts }
+    this.lastClosedWindowId = null; // Track the last closed window to prevent duplicate closes
   }
 
   /**
@@ -53,8 +54,14 @@ class WindowManager {
     let closedWindowId = null;
     
     // If we've moved to a new window, mark the previous one as closed
+    // But only if we haven't already closed it (prevents duplicate closes from both sensors)
     if (this.currentWindowId && this.currentWindowId !== windowId) {
-      closedWindowId = this.currentWindowId;
+      // Only return the closed window if it's different from the last one we closed
+      // This prevents both sensors from triggering the same window close
+      if (this.currentWindowId !== this.lastClosedWindowId) {
+        closedWindowId = this.currentWindowId;
+        this.lastClosedWindowId = this.currentWindowId;
+      }
     }
     
     this.currentWindowId = windowId;
@@ -103,8 +110,8 @@ class WindowManager {
   /**
    * Clean up old windows (keep only last N windows).
    */
-  trimHistory(maxWindows = 360) {
-    // 360 windows = 60 minutes (1 hour) of 10-second windows
+  trimHistory(maxWindows = 240) {
+    // 240 windows = 60 minutes (1 hour) of 15-second windows
     if (this.windows.size <= maxWindows) return;
     
     const entries = Array.from(this.windows.entries())

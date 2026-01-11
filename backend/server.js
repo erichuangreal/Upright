@@ -36,13 +36,16 @@ let history2 = [];
 let latest1 = { pitch: 0, ts: Date.now(), source: 1 };
 let latest2 = { pitch: 0, ts: Date.now(), source: 2 };
 
-// Window manager for 10-second insights (testing mode)
+// Window manager for 15-second insights
 const windowManager = new WindowManager();
 
 // Insight storage (in-memory)
 let latestInsight = null;
-const insightHistory = []; // Last ~360 windows (60 minutes of 10-second windows)
-const MAX_INSIGHT_HISTORY = 360;
+const insightHistory = []; // Last ~240 windows (60 minutes of 15-second windows)
+const MAX_INSIGHT_HISTORY = 240;
+
+// Track processed windows to prevent duplicates
+const processedWindows = new Set();
 
 // ---- Gemini config knobs (safe defaults) ----
 const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-1.5-flash";
@@ -128,10 +131,36 @@ wss.on("connection", (ws) => {
  */
 async function processClosedWindow(closedWindowId) {
   try {
+    // Prevent duplicate processing - if we've already processed this window, skip it
+    if (processedWindows.has(closedWindowId)) {
+      console.log(`[Window] Already processed ${closedWindowId}, skipping duplicate`);
+      return;
+    }
+    
     const window = windowManager.getWindow(closedWindowId);
     if (!window) {
       console.log(`[Window] No data for closed window ${closedWindowId}`);
       return;
+    }
+
+    // Check minimum sample threshold - need at least some data to generate meaningful insights
+    const totalSamples = window.sensor1.length + window.sensor2.length;
+    const MIN_SAMPLES_THRESHOLD = 10; // Minimum samples before processing
+    
+    if (totalSamples < MIN_SAMPLES_THRESHOLD) {
+      console.log(`[Window] Insufficient samples (${totalSamples}) for ${closedWindowId}, skipping`);
+      // Mark as processed anyway to avoid retrying
+      processedWindows.add(closedWindowId);
+      return;
+    }
+
+    // Mark as being processed immediately to prevent race conditions
+    processedWindows.add(closedWindowId);
+    
+    // Clean up old processed window IDs (keep last 500)
+    if (processedWindows.size > 500) {
+      const toRemove = Array.from(processedWindows).slice(0, processedWindows.size - 500);
+      toRemove.forEach(id => processedWindows.delete(id));
     }
 
     // Compute features from window samples
@@ -177,13 +206,13 @@ async function processClosedWindow(closedWindowId) {
       insightHistory.shift();
     }
 
-    // Broadcast to WebSocket clients
+    // Broadcast to WebSocket clients (only once per window)
     broadcast(insightObj);
     
-    console.log(`[Window] Processed ${closedWindowId}: rating=${insight.rating}, confidence=${insight.confidence}`);
+    console.log(`[Window] Processed ${closedWindowId}: rating=${insight.rating}, confidence=${insight.confidence}, samples=${totalSamples}`);
     
     // Clean up old windows
-    windowManager.trimHistory(360); // Keep last 360 windows (60 minutes of 10-second windows)
+    windowManager.trimHistory(240); // Keep last 240 windows (60 minutes of 15-second windows)
     windowManager.removeWindow(closedWindowId);
   } catch (err) {
     console.error(`[Window] Error processing ${closedWindowId}:`, err);
@@ -204,7 +233,7 @@ function createFallbackInsight(features) {
     : 0;
   
   const totalSamples = features.sensor1.sampleCount + features.sensor2.sampleCount;
-  const rating = avgSlouch >= 60 ? "poor" : avgSlouch >= 25 ? "fair" : "good";
+  const rating = avgSlouch >= 60 ? "poor" : avgSlouch >= 40 ? "not_so_good" : avgSlouch >= 15 ? "fair" : "good";
   
   // Add variation using a simple hash of sample count
   const variation = totalSamples % 4;
@@ -218,16 +247,22 @@ function createFallbackInsight(features) {
       "Your alignment is looking strong. Well done!",
     ],
     fair: [
-      "Your posture could use some attention. You're slouching forward occasionally.",
-      "You're showing some forward lean. Try to straighten up when you notice it.",
+      "Your posture could use some attention. You're slouching occasionally.",
+      "You're showing some lean. Try to straighten up when you notice it.",
       "Moderate slouching detected. Focus on keeping your shoulders back.",
-      "Your posture is okay but could be improved. Be mindful of forward lean.",
+      "Your posture is okay but could be improved. Be mindful of lean.",
+    ],
+    not_so_good: [
+      "You're slouching noticeably. Try to sit up straighter.",
+      "Noticeable lean detected. Make an effort to correct your posture.",
+      "You're leaning often. Focus on keeping your back straight.",
+      "Your posture needs attention. You're slouching more than usual.",
     ],
     poor: [
-      "You're slouching forward quite often. Try to sit up straighter.",
-      "Frequent forward lean detected. Make an effort to correct your posture.",
-      "You're leaning forward most of the time. Focus on keeping your back straight.",
-      "Your posture needs attention. You're slouching forward regularly.",
+      "You're slouching quite often. Try to sit up straighter.",
+      "Frequent lean detected. Make an effort to correct your posture.",
+      "You're leaning most of the time. Focus on keeping your back straight.",
+      "Your posture needs attention. You're slouching regularly.",
     ],
   };
   
@@ -238,11 +273,17 @@ function createFallbackInsight(features) {
     "Posture could be more consistent",
     "Occasional forward lean",
   ];
+  const issuesNotSoGood = [
+    "You're leaning forward often",
+    "Noticeable forward slouching detected",
+    "Posture needs improvement",
+    "Regular forward lean",
+  ];
   const issuesPoor = [
     "You're slouching forward frequently",
     "Frequent forward lean detected",
-    "Posture needs improvement",
-    "Regular forward slouching",
+    "Posture needs significant improvement",
+    "Persistent forward slouching",
   ];
   
   const suggestionsFair = [
@@ -252,11 +293,18 @@ function createFallbackInsight(features) {
     "Consider using lumbar support to help maintain alignment",
   ];
   
+  const suggestionsNotSoGood = [
+    "Take breaks to reset your posture: shoulders back, chin neutral, sit tall",
+    "Raise your screen to eye level to reduce forward lean",
+    "Use lumbar support and adjust your chair height",
+    "Set reminders to check and correct your posture every 15 minutes",
+  ];
+  
   const suggestionsPoor = [
     "Take frequent breaks to reset your posture: shoulders back, chin neutral",
     "Raise your screen to eye level to reduce forward lean",
     "Use lumbar support and adjust your chair height",
-    "Set reminders to check and correct your posture every 30 minutes",
+    "Set reminders to check and correct your posture every 15 minutes",
   ];
   
   const tipsGood = [
@@ -267,14 +315,21 @@ function createFallbackInsight(features) {
   ];
   
   const tipsFair = [
-    "Set a reminder every 30 minutes to check your posture",
+    "Set a reminder every 15 minutes to check your posture",
     "Try posture exercises to strengthen your back muscles",
     "Be more mindful of when you start to lean forward",
     "Take a quick posture break right now - sit tall!",
   ];
   
+  const tipsNotSoGood = [
+    "Start by setting a reminder every 15 minutes to check your posture",
+    "Try a posture reset right now: sit tall, shoulders back",
+    "Consider ergonomic adjustments to your workspace",
+    "Focus on small, frequent posture corrections throughout the day",
+  ];
+  
   const tipsPoor = [
-    "Start by setting a reminder every 20 minutes to check your posture",
+    "Start by setting a reminder every 15 minutes to check your posture",
     "Try a posture reset right now: sit tall, shoulders back",
     "Consider ergonomic adjustments to your workspace",
     "Focus on small, frequent posture corrections throughout the day",
@@ -283,9 +338,9 @@ function createFallbackInsight(features) {
   return {
     rating: rating,
     summary: summaries[rating][variation],
-    issues: rating === "good" ? issuesGood : rating === "fair" ? [issuesFair[variation]] : [issuesPoor[variation]],
-    suggestions: rating === "good" ? ["Keep maintaining good posture!"] : rating === "fair" ? [suggestionsFair[variation], suggestionsFair[(variation + 1) % suggestionsFair.length]] : [suggestionsPoor[variation], suggestionsPoor[(variation + 1) % suggestionsPoor.length]],
-    tip: rating === "good" ? tipsGood[variation] : rating === "fair" ? tipsFair[variation] : tipsPoor[variation],
+    issues: rating === "good" ? issuesGood : rating === "fair" ? [issuesFair[variation]] : rating === "not_so_good" ? [issuesNotSoGood[variation]] : [issuesPoor[variation]],
+    suggestions: rating === "good" ? ["Keep maintaining good posture!"] : rating === "fair" ? [suggestionsFair[variation], suggestionsFair[(variation + 1) % suggestionsFair.length]] : rating === "not_so_good" ? [suggestionsNotSoGood[variation], suggestionsNotSoGood[(variation + 1) % suggestionsNotSoGood.length]] : [suggestionsPoor[variation], suggestionsPoor[(variation + 1) % suggestionsPoor.length]],
+    tip: rating === "good" ? tipsGood[variation] : rating === "fair" ? tipsFair[variation] : rating === "not_so_good" ? tipsNotSoGood[variation] : tipsPoor[variation],
     confidence: features.quality.dataQuality === "good" ? "high" : features.quality.dataQuality === "partial" ? "medium" : "low",
   };
 }

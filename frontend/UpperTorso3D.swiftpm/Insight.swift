@@ -14,6 +14,7 @@ struct Insight: Identifiable {
     enum Rating: String {
         case good = "good"
         case fair = "fair"
+        case notSoGood = "not_so_good"
         case poor = "poor"
     }
     

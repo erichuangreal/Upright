@@ -70,7 +70,8 @@ function computeAlignmentMetrics(stats1, stats2) {
  * Compute data quality flags.
  */
 function computeDataQuality(window, stats1, stats2) {
-  const minSamplesForQuality = 50; // ~20Hz * 30s minimum
+  // For 15-second windows at ~20Hz, expect ~300 samples. Use 50 as minimum threshold.
+  const minSamplesForQuality = 50;
   const lowSamples = stats1.sampleCount < minSamplesForQuality && stats2.sampleCount < minSamplesForQuality;
   const missingSensor1 = !stats1.hasData;
   const missingSensor2 = !stats2.hasData;

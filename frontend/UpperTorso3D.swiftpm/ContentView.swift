@@ -31,6 +31,30 @@ struct ContentView: View {
         return isGood
     }
     
+    // Filter insight to match the current posture status
+    private var filteredInsight: Insight? {
+        // First check if latest insight matches current posture status
+        if let latest = postureVM.latestInsight {
+            if isGoodPosture {
+                if latest.rating == .good || latest.rating == .fair {
+                    return latest
+                }
+            } else {
+                if latest.rating == .notSoGood || latest.rating == .poor {
+                    return latest
+                }
+            }
+        }
+        
+        // If latest doesn't match, search history for most recent matching insight
+        let matchingRatings: [Insight.Rating] = isGoodPosture 
+            ? [.good, .fair]
+            : [.notSoGood, .poor]
+        
+        // History is sorted by windowStart (most recent first)
+        return postureVM.insightHistory.first { matchingRatings.contains($0.rating) }
+    }
+    
     var body: some View {
         mainContent
             .onAppear(perform: handleAppear)
@@ -57,14 +81,14 @@ struct ContentView: View {
     private var mainContent: some View {
         ZStack {
             // Neutral gray background
-            Color(red: 0.55, green: 0.55, blue: 0.55)
+            Color(red: 0.8, green: 0.8, blue: 0.8)
                 .ignoresSafeArea()
             
             VStack(spacing: 0) {
                 headerView
                 sceneView
                 controlsView
-                InsightCard(insight: postureVM.latestInsight)
+                InsightCard(insight: filteredInsight, isGoodPosture: isGoodPosture)
                     .padding(.horizontal, 16)
                     .padding(.bottom, 20)
             }
@@ -76,7 +100,7 @@ struct ContentView: View {
         HStack {
             VStack(alignment: .leading, spacing: 4) {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("PRESSUREPOINT")
+                    Text("UPRIGHT")
                         .font(.system(size: 12, weight: .bold, design: .monospaced))
                         .foregroundColor(.white.opacity(0.8))
                         .tracking(4)
@@ -86,16 +110,16 @@ struct ContentView: View {
                         .font(.system(size: 40, weight: .black))
                         .foregroundColor(isGoodPosture ? .green : .red)
                     
-                    // Raw sensor values
-                    Text("Upper: \(String(format: "%.1f", postureVM.upperPitch))°")
+                    // Model rotation angles (in degrees)
+                    Text("Pitch: \(String(format: "%.1f", modelRotationX * 180 / .pi))°")
                         .font(.system(size: 16, weight: .semibold, design: .monospaced))
                         .foregroundColor(.white)
-                    Text("Lower: \(String(format: "%.1f", postureVM.lowerPitch))°")
+                    Text("Roll: \(String(format: "%.1f", modelRotationZ * 180 / .pi))°")
                         .font(.system(size: 16, weight: .semibold, design: .monospaced))
                         .foregroundColor(.white)
-                    Text("Diff: \(String(format: "%.1f", abs(postureVM.upperPitch - postureVM.lowerPitch)))°")
+                    Text("Yaw: \(String(format: "%.1f", modelRotationY * 180 / .pi))°")
                         .font(.system(size: 16, weight: .semibold, design: .monospaced))
-                        .foregroundColor(isGoodPosture ? .green : .red)
+                        .foregroundColor(.white)
                 }
             }
             Spacer()
@@ -128,7 +152,7 @@ struct ContentView: View {
                 modelRotationY: modelRotationY,
                 modelRotationZ: modelRotationZ,
                 zoom: $zoom,
-                postureRating: postureVM.latestInsight?.rating
+                isGoodPosture: isGoodPosture
             )
             
         }
@@ -184,12 +208,14 @@ struct ContentView: View {
 // MARK: - Insight Card
 struct InsightCard: View {
     let insight: Insight?
+    let isGoodPosture: Bool
     
     private var ratingColor: Color {
         guard let insight = insight else { return .gray }
         switch insight.rating {
         case .good: return .green
-        case .fair: return .orange
+        case .fair: return .green  // Fair is still good, keep green
+        case .notSoGood: return .yellow
         case .poor: return .red
         }
     }
@@ -198,7 +224,8 @@ struct InsightCard: View {
         guard let insight = insight else { return "lightbulb" }
         switch insight.rating {
         case .good: return "checkmark.circle.fill"
-        case .fair: return "exclamationmark.triangle.fill"
+        case .fair: return "checkmark.circle.fill"
+        case .notSoGood: return "exclamationmark.triangle.fill"
         case .poor: return "xmark.circle.fill"
         }
     }
@@ -298,7 +325,7 @@ struct InsightCard: View {
                 .padding(.top, 6)
             } else {
                 // Placeholder when no insight available
-                Text("Waiting for posture analysis...")
+                Text(isGoodPosture ? "Maintaining good posture! Keep it up." : "Waiting for posture analysis...")
                     .font(.system(size: 15, weight: .regular))
                     .foregroundColor(.gray)
                     .lineSpacing(3)
@@ -314,12 +341,13 @@ struct InsightCard: View {
 
 // MARK: - 3D Scene View
 struct TorsoSceneView: UIViewRepresentable {
-    var modelRotationX: Float  // Pitch (sensor + drag)
-    var modelRotationY: Float  // Yaw (drag)
-    var modelRotationZ: Float  // Roll (sensor)
+    var modelRotationX: Float
+    var modelRotationY: Float
+    var modelRotationZ: Float
     @Binding var zoom: CGFloat
-    var postureRating: Insight.Rating?  // For glowing back indicator
-    
+
+    var isGoodPosture: Bool   // ✅ NEW
+
     func makeUIView(context: Context) -> SCNView {
         let sceneView = SCNView()
         sceneView.scene = createScene()
@@ -327,40 +355,26 @@ struct TorsoSceneView: UIViewRepresentable {
         sceneView.antialiasingMode = .multisampling4X
         sceneView.autoenablesDefaultLighting = false
         sceneView.allowsCameraControl = false
-        
         return sceneView
     }
-    
+
     func updateUIView(_ uiView: SCNView, context: Context) {
-        // Apply all rotations to the model
         if let modelNode = uiView.scene?.rootNode.childNode(withName: "model", recursively: false) {
             modelNode.eulerAngles = SCNVector3(modelRotationX, modelRotationY, modelRotationZ)
         }
 
-        // Camera stays fixed, only zoom changes
         if let cameraNode = uiView.scene?.rootNode.childNode(withName: "camera", recursively: false) {
             cameraNode.position.z = Float(2.5 / zoom)
         }
-        
-        // Update back glow color based on posture rating
+
+        // ✅ Back glow matches GOOD/BAD
         if let backGlow = uiView.scene?.rootNode.childNode(withName: "backGlow", recursively: true),
            let glowMaterial = backGlow.geometry?.materials.first {
-            let targetColor: UIColor
-            if let rating = postureRating {
-                switch rating {
-                case .good:
-                    targetColor = UIColor.green
-                case .fair:
-                    targetColor = UIColor.orange
-                case .poor:
-                    targetColor = UIColor.red
-                }
-            } else {
-                targetColor = UIColor.gray  // No data
-            }
-            
+
+            let targetColor: UIColor = isGoodPosture ? .green : .red
+
             SCNTransaction.begin()
-            SCNTransaction.animationDuration = 0.5
+            SCNTransaction.animationDuration = 0.25
             glowMaterial.emission.contents = targetColor
             glowMaterial.diffuse.contents = targetColor.withAlphaComponent(0.3)
             SCNTransaction.commit()
@@ -493,6 +507,19 @@ struct TorsoSceneView: UIViewRepresentable {
                 containerNode.addChildNode(child.clone())
             }
             
+            // Change all materials to grey
+            containerNode.enumerateChildNodes { node, _ in
+                if let geometry = node.geometry {
+                    let greyMaterial = SCNMaterial()
+                    greyMaterial.diffuse.contents = UIColor(white: 0.6, alpha: 1.0)
+                    greyMaterial.specular.contents = UIColor(white: 0.15, alpha: 1.0)
+                    greyMaterial.roughness.contents = 0.75
+                    greyMaterial.metalness.contents = 0.0
+                    greyMaterial.lightingModel = .physicallyBased
+                    geometry.materials = [greyMaterial]
+                }
+            }
+            
             // Center and scale the model
             let (minVec, maxVec) = containerNode.boundingBox
             let width = maxVec.x - minVec.x
@@ -521,7 +548,7 @@ struct TorsoSceneView: UIViewRepresentable {
         let torsoNode = SCNNode()
         
         let skinMaterial = SCNMaterial()
-        skinMaterial.diffuse.contents = UIColor(red: 0.82, green: 0.78, blue: 0.75, alpha: 1.0)
+        skinMaterial.diffuse.contents = UIColor(white: 0.6, alpha: 1.0)
         skinMaterial.specular.contents = UIColor(white: 0.15, alpha: 1.0)
         skinMaterial.roughness.contents = 0.75
         skinMaterial.metalness.contents = 0.0
