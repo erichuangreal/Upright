@@ -1,4 +1,3 @@
-<!--
 Project: DeltaHacks 12 — Posture Backend
 
 Overview:
@@ -42,5 +41,3 @@ Developer tips:
 - Run the server locally before starting the serial bridge.
 - For debugging, inspect console logs from `serial-bridge.js` and `server.js`.
 
--- End of commented README
--->
