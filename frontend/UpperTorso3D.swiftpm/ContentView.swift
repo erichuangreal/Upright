@@ -128,7 +128,7 @@ struct ContentView: View {
                 modelRotationY: modelRotationY,
                 modelRotationZ: modelRotationZ,
                 zoom: $zoom,
-                isGoodPosture: isGoodPosture
+                postureRating: postureVM.latestInsight?.rating
             )
             
         }
@@ -318,7 +318,7 @@ struct TorsoSceneView: UIViewRepresentable {
     var modelRotationY: Float  // Yaw (drag)
     var modelRotationZ: Float  // Roll (sensor)
     @Binding var zoom: CGFloat
-    var isGoodPosture: Bool  // For glowing back indicator
+    var postureRating: Insight.Rating?  // For glowing back indicator
     
     func makeUIView(context: Context) -> SCNView {
         let sceneView = SCNView()
@@ -342,6 +342,29 @@ struct TorsoSceneView: UIViewRepresentable {
             cameraNode.position.z = Float(2.5 / zoom)
         }
         
+        // Update back glow color based on posture rating
+        if let backGlow = uiView.scene?.rootNode.childNode(withName: "backGlow", recursively: true),
+           let glowMaterial = backGlow.geometry?.materials.first {
+            let targetColor: UIColor
+            if let rating = postureRating {
+                switch rating {
+                case .good:
+                    targetColor = UIColor.green
+                case .fair:
+                    targetColor = UIColor.orange
+                case .poor:
+                    targetColor = UIColor.red
+                }
+            } else {
+                targetColor = UIColor.gray  // No data
+            }
+            
+            SCNTransaction.begin()
+            SCNTransaction.animationDuration = 0.5
+            glowMaterial.emission.contents = targetColor
+            glowMaterial.diffuse.contents = targetColor.withAlphaComponent(0.3)
+            SCNTransaction.commit()
+        }
     }
     
     func createScene() -> SCNScene {
@@ -399,6 +422,10 @@ struct TorsoSceneView: UIViewRepresentable {
             let fallback = createBuiltInTorso()
             modelNode.addChildNode(fallback)
         }
+        
+        // Add back glow aura
+        let backGlow = createBackGlow()
+        modelNode.addChildNode(backGlow)
         
         scene.rootNode.addChildNode(modelNode)
         
@@ -696,26 +723,31 @@ struct TorsoSceneView: UIViewRepresentable {
         return torsoNode
     }
     
-    // MARK: - Back Glow Indicator
+    // MARK: - Back Glow Aura
     func createBackGlow() -> SCNNode {
         let backGlowNode = SCNNode()
         backGlowNode.name = "backGlow"
         
-        // Glowing aura around the torso (visible from all angles)
-        let glowGeometry = SCNBox(width: 1.0, height: 1.4, length: 0.08, chamferRadius: 0.12)
+        // Create a circular glowing aura on the back - use a flattened sphere
+        let glowGeometry = SCNSphere(radius: 0.35)
+        glowGeometry.segmentCount = 32  // Smooth circular shape
         
         let glowMaterial = SCNMaterial()
-        glowMaterial.emission.contents = UIColor.green // Start with green
-        glowMaterial.diffuse.contents = UIColor.green.withAlphaComponent(0.2)
-        glowMaterial.lightingModel = .constant
-        glowMaterial.transparency = 0.85  // More visible
+        glowMaterial.emission.contents = UIColor.gray  // Default gray when no rating
+        glowMaterial.emission.intensity = 1.5  // Make it glow brightly
+        glowMaterial.diffuse.contents = UIColor.clear  // Transparent so only emission shows
+        glowMaterial.lightingModel = .constant  // Constant lighting so it always glows
+        glowMaterial.transparency = 0.7
         glowMaterial.isDoubleSided = true  // Visible from both sides
         
         glowGeometry.materials = [glowMaterial]
         backGlowNode.geometry = glowGeometry
         
-        // Position behind the upper back
-        backGlowNode.position = SCNVector3(0, 0.5, -0.25)
+        // Flatten the sphere to make it more like an oval/circular disc
+        backGlowNode.scale = SCNVector3(1.0, 1.4, 0.15)  // Wider, taller, very thin
+        
+        // Position on the back of the torso (negative Z is back)
+        backGlowNode.position = SCNVector3(0, 0.4, -0.32)
         
         return backGlowNode
     }
