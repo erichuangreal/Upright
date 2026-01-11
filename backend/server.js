@@ -1,4 +1,17 @@
 // server.js
+// Node backend that accepts IMU samples from TWO Arduino boards:
+//  - Arduino #1 posts to POST /imu  -> logs to telemetry.ndjson
+//  - Arduino #2 posts to POST /imu2 -> logs to telemetry2.ndjson
+// It also broadcasts every sample over WebSocket (ws://localhost:8080)
+// and tags each sample with source: 1 or source: 2.
+//
+// Start (PowerShell):
+//   & "C:\Program Files\nodejs\node.exe" server.js
+//
+// Bridges:
+//   & "C:\Program Files\nodejs\node.exe" serial-bridge.js COM5 115200 localhost 8080 /imu
+//   & "C:\Program Files\nodejs\node.exe" serial-bridge.js COM6 115200 localhost 8080 /imu2
+
 const http = require("http");
 const express = require("express");
 const cors = require("cors");
@@ -6,21 +19,26 @@ const WebSocket = require("ws");
 const fs = require("fs");
 const path = require("path");
 
-const PORT = 8080;
+const PORT = Number(process.env.PORT || 8080);
 
 const app = express();
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: "256kb" }));
 
-// ---- Telemetry logging ----
-const TELEMETRY_PATH = process.env.TELEMETRY_PATH || path.join(__dirname, "telemetry.ndjson");
-const MAX_BUFFER = Number(process.env.MAX_BUFFER || 5000);
+// ---- Telemetry files ----
+const TELEMETRY1_PATH = process.env.TELEMETRY1_PATH || path.join(__dirname, "telemetry.ndjson");
+const TELEMETRY2_PATH = process.env.TELEMETRY2_PATH || path.join(__dirname, "telemetry2.ndjson");
 
-// Store latest message so new clients can instantly get something
-let latest = { pitch: 0, ts: Date.now() };
-let history = [];
+// Optional: keep a little history in memory (for debugging)
+const MAX_BUFFER = Number(process.env.MAX_BUFFER || 2000);
+let history1 = [];
+let history2 = [];
 
-// Helpers
+// Latest samples (for new WS clients + /latest endpoints)
+let latest1 = { pitch: 0, ts: Date.now(), source: 1 };
+let latest2 = { pitch: 0, ts: Date.now(), source: 2 };
+
+// ---- Helpers ----
 function toNum(v) {
   if (typeof v === "number" && Number.isFinite(v)) return v;
   if (typeof v === "string" && v.trim() !== "" && Number.isFinite(Number(v))) return Number(v);
@@ -48,91 +66,82 @@ function normalizeSample(body) {
   return { ok: true, sample };
 }
 
-function persistAndBroadcast(sample) {
-  latest = sample;
-
-  history.push(sample);
-  if (history.length > MAX_BUFFER) history.shift();
-
-  // Append to NDJSON log (one JSON per line)
-  fs.appendFile(TELEMETRY_PATH, JSON.stringify(sample) + "\n", () => { });
-
-  broadcast(sample);
+function appendNdjson(filePath, obj) {
+  fs.appendFile(filePath, JSON.stringify(obj) + "\n", () => { });
 }
 
-// --- WebSocket server ---
+// ---- WebSocket server ----
 const server = http.createServer(app);
 const wss = new WebSocket.Server({ server });
 
 function broadcast(obj) {
   const msg = JSON.stringify(obj);
-  wss.clients.forEach((client) => {
+  for (const client of wss.clients) {
     if (client.readyState === WebSocket.OPEN) client.send(msg);
-  });
+  }
 }
 
 wss.on("connection", (ws) => {
-  // Send latest immediately
-  ws.send(JSON.stringify(latest));
+  // Send latest from both sensors immediately so client has state
+  ws.send(JSON.stringify(latest1));
+  ws.send(JSON.stringify(latest2));
 });
 
-// --- HTTP endpoints ---
+// ---- HTTP endpoints ----
 
-// Backward compatible endpoint name
-app.post("/pitch", (req, res) => {
-  const norm = normalizeSample(req.body);
-  if (!norm.ok) return res.status(400).json(norm);
-
-  persistAndBroadcast(norm.sample);
-
-  const s = norm.sample;
-  console.log(
-    `[HTTP /pitch] pitch=${s.pitch.toFixed(2)} ax=${s.ax ?? "?"} ay=${s.ay ?? "?"} az=${s.az ?? "?"} ts=${s.ts}`
-  );
-
-  res.json({ ok: true });
-});
-
-// Preferred endpoint
+// Arduino #1 -> /imu -> telemetry.ndjson
 app.post("/imu", (req, res) => {
   const norm = normalizeSample(req.body);
   if (!norm.ok) return res.status(400).json(norm);
 
-  persistAndBroadcast(norm.sample);
-  res.json({ ok: true });
-});
+  const sample = { ...norm.sample, source: 1 };
+  latest1 = sample;
 
-// Quick debug endpoints
-app.get("/latest", (req, res) => res.json(latest));
-app.get("/history", (req, res) => res.json(history));
+  history1.push(sample);
+  if (history1.length > MAX_BUFFER) history1.shift();
 
-// --- Demo mode (keep your existing demo logic if you want) ---
-let demoTimer = null;
-
-app.post("/demo/start", (req, res) => {
-  if (demoTimer) return res.json({ ok: true, alreadyRunning: true });
-
-  let t = 0;
-  demoTimer = setInterval(() => {
-    t += 0.05;
-    const pitch = 15 * Math.sin(t);
-    const sample = { pitch, ts: Date.now() };
-    latest = sample;
-    broadcast(sample);
-  }, 50);
+  appendNdjson(TELEMETRY1_PATH, sample);
+  broadcast(sample);
 
   res.json({ ok: true });
 });
 
-app.post("/demo/stop", (req, res) => {
-  if (demoTimer) clearInterval(demoTimer);
-  demoTimer = null;
+// Arduino #2 -> /imu2 -> telemetry2.ndjson
+app.post("/imu2", (req, res) => {
+  const norm = normalizeSample(req.body);
+  if (!norm.ok) return res.status(400).json(norm);
+
+  const sample = { ...norm.sample, source: 2 };
+  latest2 = sample;
+
+  history2.push(sample);
+  if (history2.length > MAX_BUFFER) history2.shift();
+
+  appendNdjson(TELEMETRY2_PATH, sample);
+  broadcast(sample);
+
   res.json({ ok: true });
 });
 
-// Start
+// Debug helpers
+app.get("/latest1", (req, res) => res.json(latest1));
+app.get("/latest2", (req, res) => res.json(latest2));
+app.get("/history1", (req, res) => res.json(history1));
+app.get("/history2", (req, res) => res.json(history2));
+
+// Basic health check
+app.get("/", (req, res) => {
+  res.send(
+    `OK\nPOST /imu (source 1) -> ${path.basename(TELEMETRY1_PATH)}\nPOST /imu2 (source 2) -> ${path.basename(
+      TELEMETRY2_PATH
+    )}\nWS: ws://localhost:${PORT}\n`
+  );
+});
+
+// ---- Start server ----
 server.listen(PORT, () => {
   console.log(`Backend listening on http://localhost:${PORT}`);
   console.log(`WebSocket on ws://localhost:${PORT}`);
-  console.log(`Logging to ${TELEMETRY_PATH}`);
+  console.log(`Logging #1 to ${TELEMETRY1_PATH}`);
+  console.log(`Logging #2 to ${TELEMETRY2_PATH}`);
 });
