@@ -1,4 +1,6 @@
 # Project: DeltaHacks 12 — Upright (a 3D posture visualizer)
+## Devpost
+https://devpost.com/software/upright-rdfkve?ref_content=my-projects-tab&ref_feature=my_projects
 
 ## About
 People around the world are affected by back pain at any one time. For many, poor posture is the silent culprit; hours spent hunched over laptops, craning necks at screens, and slouching in chairs compound into chronic pain that impacts quality of life. Despite its prevalence, real-time posture monitoring remains a severely under-researched problem, with few accessible solutions for everyday prevention.
