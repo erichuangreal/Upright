@@ -1,15 +1,4 @@
 # Project: DeltaHacks 12 — Upright (a 3D posture visualizer)
-## Devpost
-https://devpost.com/software/upright-rdfkve?ref_content=my-projects-tab&ref_feature=my_projects
-
-## About
-People around the world are affected by back pain at any one time. For many, poor posture is the silent culprit; hours spent hunched over laptops, craning necks at screens, and slouching in chairs compound into chronic pain that impacts quality of life. Despite its prevalence, real-time posture monitoring remains a severely under-researched problem, with few accessible solutions for everyday prevention.
-
-Upright is a real-time posture monitoring system that helps prevent back pain before it starts. Using dual Arduino sensors with accelerometers placed on the upper back (neck) and lower back, our system detects misalignment between your spine segments—the telltale sign of slouching or poor posture.
-
-When your posture deteriorates, you get instant visual feedback through our digital twin interface- a 3D representation of your torso that mirrors your real-time body positioning. The system compares the angle difference between your upper and lower back sensors in real-time, alerting you when they drift more than 15 degrees apart. But we don't just tell you your posture is bad- powered by Google's Gemini API, Upright provides personalized, actionable feedback and corrective exercises tailored to your specific posture issues, helping you understand not just what's wrong, but how to fix it.
-
-Software engineers, designers, and tech professionals spend 8+ hours a day sitting at desks, making them particularly vulnerable to posture-related injuries. Upright is designed for the people who need it most: those of us who code, design, and build while our backs silently suffer.
 
 ## Built with:
 Arduino microcontrollers with MMA7660 accelerometers
@@ -21,6 +10,15 @@ Swift Playground, SwiftUI + SceneKit for immersive 3D digital twin visualization
 Google Gemini API for intelligent posture analysis and personalized feedback
 
 Custom posture detection algorithms
+
+## About
+People around the world are affected by back pain at any one time. For many, poor posture is the silent culprit; hours spent hunched over laptops, craning necks at screens, and slouching in chairs compound into chronic pain that impacts quality of life. Despite its prevalence, real-time posture monitoring remains a severely under-researched problem, with few accessible solutions for everyday prevention.
+
+Upright is a real-time posture monitoring system that helps prevent back pain before it starts. Using dual Arduino sensors with accelerometers placed on the upper back (neck) and lower back, our system detects misalignment between your spine segments—the telltale sign of slouching or poor posture.
+
+When your posture deteriorates, you get instant visual feedback through our digital twin interface- a 3D representation of your torso that mirrors your real-time body positioning. The system compares the angle difference between your upper and lower back sensors in real-time, alerting you when they drift more than 15 degrees apart. But we don't just tell you your posture is bad- powered by Google's Gemini API, Upright provides personalized, actionable feedback and corrective exercises tailored to your specific posture issues, helping you understand not just what's wrong, but how to fix it.
+
+Software engineers, designers, and tech professionals spend 8+ hours a day sitting at desks, making them particularly vulnerable to posture-related injuries. Upright is designed for the people who need it most: those of us who code, design, and build while our backs silently suffer.
 
 ## Why it matters:
 Prevention is better than cure. By catching poor posture in the moment through digital twin technology and AI-powered insights, Upright helps users develop lasting awareness and healthier habits, potentially saving millions from chronic back pain and its associated costs.
