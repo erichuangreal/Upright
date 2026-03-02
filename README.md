@@ -9,6 +9,10 @@
 [![Swift](https://img.shields.io/badge/Swift-FA7343?style=flat&logo=swift&logoColor=white)](https://swift.org/)
 [![Gemini](https://img.shields.io/badge/Google_Gemini-4285F4?style=flat&logo=google&logoColor=white)](https://ai.google.dev/)
 
+## 🔗 Links
+- 🌐 Live Demo: https://upright.erichuangreal.dev
+- 🏆 Devpost: https://devpost.com/software/upright-rdfkve?ref_content=my-projects-tab&ref_feature=my_projects%20https://upright.erichuangreal.dev/
+
 ---
 
 ## 📋 Table of Contents
