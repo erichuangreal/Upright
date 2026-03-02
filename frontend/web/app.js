@@ -1,8 +1,33 @@
 // Upright Web Frontend - Real-Time Posture Visualization
 // Uses Three.js for 3D rendering and WebSocket for real-time data
 
-// Configuration
-const WS_URL = 'ws://159.89.112.149:8003'; // Server IP address
+/**
+ * Backend URL configuration - works for both access modes:
+ * - Direct IP (e.g. 159.89.112.149:5373): backend on same host :8003
+ * - Domain via nginx (e.g. upright.erichuangreal.dev): backend proxied at /ws and /api
+ *
+ * When using domain + HTTPS, the hardcoded ws://IP:8003 is blocked by browsers (mixed content).
+ * Using dynamic URLs fixes: IP:5373 works, domain (HTTP/HTTPS) works.
+ */
+function getBackendConfig() {
+    const port = location.port || (location.protocol === 'https:' ? '443' : '80');
+    const isDirectAccess = port === '5373';
+    const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const httpProtocol = location.protocol === 'https:' ? 'https:' : 'http:';
+
+    if (isDirectAccess) {
+        return {
+            ws: `${protocol}//${location.hostname}:8003`,
+            api: `${httpProtocol}//${location.hostname}:8003`
+        };
+    }
+    return {
+        ws: `${protocol}//${location.host}/ws`,
+        api: `${location.origin}/api`
+    };
+}
+
+const { ws: WS_URL, api: API_BASE } = getBackendConfig();
 const SLOUCH_THRESHOLD = 15; // degrees
 
 // State
@@ -286,11 +311,8 @@ async function requestGeminiAnalysis() {
     statusEl.style.color = '#fbbf24';
     
     try {
-        // Extract base URL from WebSocket URL (ws://localhost:8003 -> http://localhost:8003)
-        const baseUrl = WS_URL.replace('ws://', 'http://').replace('wss://', 'https://');
-        
-        // Call backend Gemini API endpoint
-        const response = await fetch(`${baseUrl}/gemini/analyze`, {
+        // Call backend Gemini API endpoint (API_BASE is /api when proxied, :8003 when direct)
+        const response = await fetch(`${API_BASE}/gemini/analyze`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
