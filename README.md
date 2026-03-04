@@ -1,5 +1,7 @@
 # Project: DeltaHacks 12 — Upright (a 3D posture visualizer)
 
+Devpost: https://devpost.com/software/upright-rdfkve
+
 ## Built with:
 Arduino microcontrollers with MMA7660 accelerometers
 
