@@ -1,4 +1,4 @@
-# 🧍 Upright — Real-Time 3D Posture Monitoring System
+# Upright — Real-Time 3D Posture Monitoring System
 
 **DeltaHacks 12 Project**
 
@@ -9,13 +9,13 @@
 [![Swift](https://img.shields.io/badge/Swift-FA7343?style=flat&logo=swift&logoColor=white)](https://swift.org/)
 [![Gemini](https://img.shields.io/badge/Google_Gemini-4285F4?style=flat&logo=google&logoColor=white)](https://ai.google.dev/)
 
-## 🔗 Links
-- 🌐 Live Demo: https://upright.erichuangreal.dev
-- 🏆 Devpost: https://devpost.com/software/upright-rdfkve?ref_content=my-projects-tab&ref_feature=my_projects%20https://upright.erichuangreal.dev/
+## Links
+- Live Demo: https://upright.erichuangreal.dev
+- Devpost: https://devpost.com/software/upright-rdfkve?ref_content=my-projects-tab&ref_feature=my_projects%20https://upright.erichuangreal.dev/
 
 ---
 
-## 📋 Table of Contents
+## Table of Contents
 
 - [About](#about)
 - [System Architecture](#system-architecture)
@@ -28,23 +28,23 @@
 - [Developer Guide](#developer-guide)
 - [Contributing](#contributing)
 
-## 🌐 Live Demo
+## Live Demo
 
 **Try it without hardware!** We've created a web-based demo that simulates sensor data:
 
-👉 **[Live Demo](http://your-domain.com)** (Deploy to see it in action!)
+**[Live Demo](http://your-domain.com)** (Deploy to see it in action!)
 
 The demo includes:
-- 🤖 Mock sensors generating realistic posture data
-- 🎨 Web-based 3D visualization (Three.js)
-- 🤖 Real AI insights from Google Gemini
-- 📊 Real-time WebSocket updates
+- Mock sensors generating realistic posture data
+- Web-based 3D visualization (Three.js)
+- Real AI insights from Google Gemini
+- Real-time WebSocket updates
 
 See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for deployment instructions.
 
 ---
 
-## 🎯 About
+## About
 
 ### The Problem
 People around the world are affected by back pain at any one time. For many, poor posture is the silent culprit; hours spent hunched over laptops, craning necks at screens, and slouching in chairs compound into chronic pain that impacts quality of life. Despite its prevalence, real-time posture monitoring remains a severely under-researched problem, with few accessible solutions for everyday prevention.
@@ -53,11 +53,11 @@ People around the world are affected by back pain at any one time. For many, poo
 **Upright** is a real-time posture monitoring system that helps prevent back pain before it starts. Using **dual Arduino sensors** with accelerometers placed on the upper back (neck) and lower back, our system detects misalignment between your spine segments—the telltale sign of slouching or poor posture.
 
 ### Key Features
-- 🔴/🟢 **Instant Visual Feedback**: 3D digital twin with color-coded back glow (green = good, red = bad)
-- 📊 **15° Threshold Detection**: Compares upper vs lower back angle difference in real-time
-- 🤖 **AI-Powered Insights**: Google Gemini analyzes your posture patterns every 15 seconds
-- 💡 **Personalized Recommendations**: Actionable tips tailored to your specific posture issues
-- 📈 **Historical Tracking**: View your posture trends over time
+- **Instant Visual Feedback**: 3D digital twin with color-coded back glow (green = good, red = bad)
+- **15° Threshold Detection**: Compares upper vs lower back angle difference in real-time
+- **AI-Powered Insights**: Google Gemini analyzes your posture patterns every 15 seconds
+- **Personalized Recommendations**: Actionable tips tailored to your specific posture issues
+- **Historical Tracking**: View your posture trends over time
 
 ### Target Users
 Software engineers, designers, and tech professionals who spend 8+ hours a day sitting at desks, making them particularly vulnerable to posture-related injuries. Upright is designed for the people who need it most: those of us who code, design, and build while our backs silently suffer.
@@ -65,11 +65,11 @@ Software engineers, designers, and tech professionals who spend 8+ hours a day s
 ### Why It Matters
 **Prevention is better than cure.** By catching poor posture in the moment through digital twin technology and AI-powered insights, Upright helps users develop lasting awareness and healthier habits, potentially saving millions from chronic back pain and its associated costs.
 
-*Your spine will thank you.* 🙌
+*Your spine will thank you.*
 
 ---
 
-## 🏗️ System Architecture
+## System Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
@@ -178,13 +178,13 @@ Software engineers, designers, and tech professionals who spend 8+ hours a day s
     └──────────────────────────────────────────────┘
                      │
                      ▼
-              👤 USER FEEDBACK
+               USER FEEDBACK
            Visual + AI Insights
 ```
 
 ---
 
-## 💻 Technology Stack
+## Technology Stack
 
 ### Hardware Layer
 | Component | Technology | Purpose |
@@ -240,7 +240,7 @@ Software engineers, designers, and tech professionals who spend 8+ hours a day s
 
 ---
 
-## 🔄 Data Flow
+## Data Flow
 
 ### Real-Time Data Pipeline
 
@@ -376,90 +376,90 @@ USER SEES REAL-TIME FEEDBACK
 
 ---
 
-## 📁 File Structure
+## File Structure
 
 ```
 uprighthacks/
 │
-├── 📄 README.md                          # This file
-├── 📄 .gitignore                         # Git ignore rules
-├── 📄 package.json                       # Root dependencies (Gemini SDK)
-├── 📄 package-lock.json                  # Lock file
-├── 📄 GLOWING_BACK_IMPLEMENTATION.md     # Feature documentation
+├── README.md                          # This file
+├── .gitignore                         # Git ignore rules
+├── package.json                       # Root dependencies (Gemini SDK)
+├── package-lock.json                  # Lock file
+├── GLOWING_BACK_IMPLEMENTATION.md     # Feature documentation
 │
-├── 🔧 Arduino/                           # Hardware firmware
+├── Arduino/                           # Hardware firmware
 │   └── Posture Calibration/
 │       ├── posture_calibration.ino       # Main Arduino sketch (C++)
 │       └── README.md                     # Arduino setup guide
 │
-├── 🖥️  backend/                          # Node.js backend server
-│   ├── 📄 package.json                   # Backend dependencies
-│   ├── 📄 package-lock.json              # Lock file
-│   ├── 📄 .gitignore                     # Backend-specific ignores
-│   ├── 📄 Gemini-Integration-Key.env     # 🔐 API keys (NOT in git)
+├── backend/                          # Node.js backend server
+│   ├── package.json                   # Backend dependencies
+│   ├── package-lock.json              # Lock file
+│   ├── .gitignore                     # Backend-specific ignores
+│   ├── Gemini-Integration-Key.env     # API keys (NOT in git)
 │   │
-│   ├── 🟢 server.js                      # Main Express server
+│   ├── server.js                      # Main Express server
 │   │   ├─ HTTP endpoints (/imu, /imu2, /latest*, /history*, /insights/*)
 │   │   ├─ WebSocket server (port 8003)
 │   │   ├─ Window management (15s intervals)
 │   │   ├─ Feature extraction pipeline
 │   │   └─ Insight generation & broadcasting
 │   │
-│   ├── 🔗 serial-bridge.js               # Serial → HTTP bridge
+│   ├── serial-bridge.js               # Serial → HTTP bridge
 │   │   ├─ Reads JSON from Arduino serial
 │   │   ├─ Validates & posts to server
 │   │   └─ Usage: node serial-bridge.js <PORT> [BAUD] [HOST] [PORT] [PATH]
 │   │
-│   ├── 🤖 gemini.js                      # Gemini API integration
+│   ├── gemini.js                      # Gemini API integration
 │   │   ├─ makeGeminiClient()
 │   │   ├─ buildFeatureSummary()
 │   │   ├─ generateInsight()
 │   │   └─ Fallback insight logic
 │   │
-│   ├── 🪟 windowManager.js               # Time-window data grouping
+│   ├── windowManager.js               # Time-window data grouping
 │   │   ├─ Manages 15-second windows
 │   │   ├─ Groups samples by source
 │   │   └─ Triggers window closure events
 │   │
-│   ├── 📊 featureExtraction.js           # Statistical feature computation
+│   ├── featureExtraction.js           # Statistical feature computation
 │   │   ├─ computeWindowFeatures()
 │   │   ├─ Calculate mean/min/max pitch
 │   │   ├─ Compute slouch percentage
 │   │   └─ Alignment scoring
 │   │
-│   ├── 🤖 mock-sensor.js                 # ✨ NEW: Simulates Arduino sensors
+│   ├── mock-sensor.js                 # NEW: Simulates Arduino sensors
 │   │   ├─ Generates realistic posture data
 │   │   ├─ Multiple scenarios (good, bad, realistic, etc.)
 │   │   ├─ Configurable sample rate
 │   │   └─ Perfect for demos without hardware
 │   │
-│   ├── 🧪 test-websocket.js              # WebSocket client test
-│   ├── 🧪 test-insights.js               # Insight generation test
-│   ├── 📄 TESTING.md                     # Testing documentation
+│   ├── test-websocket.js              # WebSocket client test
+│   ├── test-insights.js               # Insight generation test
+│   ├── TESTING.md                     # Testing documentation
 │   │
-│   ├── 📜 telemetry.ndjson               # Sensor 1 data log (generated)
-│   └── 📜 telemetry2.ndjson              # Sensor 2 data log (generated)
+│   ├── telemetry.ndjson               # Sensor 1 data log (generated)
+│   └── telemetry2.ndjson              # Sensor 2 data log (generated)
 │
-└── 📱 frontend/                          # Frontend applications
+└── frontend/                          # Frontend applications
     │
-    ├── web/                              # ✨ NEW: Web-based demo (no hardware needed)
-    │   ├── 📄 index.html                 # Main web page
+    ├── web/                              # NEW: Web-based demo (no hardware needed)
+    │   ├── index.html                 # Main web page
     │   │   ├─ Responsive design
     │   │   ├─ Real-time status display
     │   │   ├─ Metrics dashboard
     │   │   └─ Insight cards
     │   │
-    │   └── 📄 app.js                     # Frontend JavaScript
+    │   └── app.js                     # Frontend JavaScript
     │       ├─ WebSocket client
     │       ├─ Three.js 3D visualization
     │       ├─ Real-time posture detection
     │       └─ UI updates
     │
     └── UpperTorso3D.swiftpm/             # Native Swift app (for real hardware)
-        ├── 📄 Package.swift              # Swift package manifest
+        ├── Package.swift              # Swift package manifest
         │
-        ├── 🎨 MyApp.swift                # App entry point
-        ├── 🖼️  ContentView.swift         # Main UI view
+        ├── MyApp.swift                # App entry point
+        ├── ContentView.swift         # Main UI view
         │   ├─ Posture detection (15° threshold)
         │   ├─ Status display (GOOD/BAD)
         │   ├─ 3D scene container
@@ -467,21 +467,21 @@ uprighthacks/
         │   ├─ InsightCard component
         │   └─ TorsoSceneView (3D rendering)
         │
-        ├── 🧠 PostureViewModel.swift     # ViewModel (data layer)
+        ├── PostureViewModel.swift     # ViewModel (data layer)
         │   ├─ WebSocket management
         │   ├─ Real-time data updates
         │   ├─ upperPitch, lowerPitch tracking
         │   └─ Insight history management
         │
-        ├── 🔌 TelemetryWebSocket.swift   # WebSocket client
+        ├── TelemetryWebSocket.swift   # WebSocket client
         │   ├─ Connects to ws://localhost:8003
         │   ├─ Auto-reconnection
         │   └─ Message parsing
         │
-        ├── 📦 TelemetryMessage.swift     # Data models
+        ├── TelemetryMessage.swift     # Data models
         │   └─ Decodable structs for JSON
         │
-        ├── 💡 Insight.swift              # Insight data model
+        ├── Insight.swift              # Insight data model
         │   ├─ Rating enum (good/fair/not_so_good/poor)
         │   ├─ Confidence enum (low/medium/high)
         │   └─ from(message:) parser
@@ -517,14 +517,14 @@ Generated Files (not in git):
 
 ---
 
-## 🚀 Setup & Installation
+## Setup & Installation
 
 ### Two Ways to Run Upright
 
-#### Option A: 🌐 **Web Demo** (No Hardware Required) ⭐ RECOMMENDED FOR DEMOS
+#### Option A: **Web Demo** (No Hardware Required) RECOMMENDED FOR DEMOS
 Perfect for trying out the system or showing it to others without physical sensors.
 
-#### Option B: 🔧 **Full Hardware Setup**
+#### Option B: **Full Hardware Setup**
 For actual posture monitoring with real Arduino sensors.
 
 ---
@@ -542,14 +542,14 @@ For actual posture monitoring with real Arduino sensors.
 - **Grove MMA7660 Accelerometer** (×2)
 - **Arduino Uno** (×2)
 
-### 1️⃣ Clone the Repository
+### 1️Clone the Repository
 
 ```bash
 git clone https://github.com/yourusername/uprighthacks.git
 cd uprighthacks
 ```
 
-### 2️⃣ Backend Setup
+### 2️Backend Setup
 
 #### Install Dependencies
 ```bash
@@ -578,7 +578,7 @@ Server will start on `http://localhost:8003`
 
 WebSocket available at `ws://localhost:8003`
 
-### 3️⃣ Arduino Setup
+### Arduino Setup
 
 #### Hardware Connections
 **For each Arduino:**
@@ -602,9 +602,9 @@ ls /dev/tty.*
 # Check Device Manager → Ports (COM & LPT)
 ```
 
-### 4️⃣ Start Data Source
+### Start Data Source
 
-#### Option A: Mock Sensors (Web Demo - No Hardware) 🌐
+#### Option A: Mock Sensors (Web Demo - No Hardware)
 
 Open two terminal windows for simulated sensors:
 
@@ -629,13 +629,13 @@ node mock-sensor.js --sensor 2 --scenario realistic
 
 You should see:
 ```
-🤖 Mock Sensor Simulator v1.0
-📡 Starting sensor simulation: Natural posture with occasional slouching
-⏱️  Sending samples every 50ms...
-[12:34:56] 🟢 GOOD | Pitch: 8.2° | Samples: 100
+Mock Sensor Simulator v1.0
+Starting sensor simulation: Natural posture with occasional slouching
+Sending samples every 50ms...
+[12:34:56] GOOD | Pitch: 8.2° | Samples: 100
 ```
 
-#### Option B: Real Arduino Sensors (Hardware Setup) 🔧
+#### Option B: Real Arduino Sensors (Hardware Setup)
 
 Open two terminal windows for real hardware:
 
@@ -658,9 +658,9 @@ You should see:
 [Serial Bridge] ✓ Posted sample (pitch=12.45)
 ```
 
-### 5️⃣ Frontend Setup
+### Frontend Setup
 
-#### Option A: Web Frontend (Browser - Works with Mock Sensors) 🌐
+#### Option A: Web Frontend (Browser - Works with Mock Sensors)
 
 Simply open in your browser:
 ```bash
@@ -674,7 +674,7 @@ python3 -m http.server 5373
 ```
 
 **What you should see:**
-- Connection status: "🟢 Connected"
+- Connection status: "Connected"
 - Real-time pitch values updating
 - 3D torso model rotating
 - Back glow changing color (green/red)
@@ -682,14 +682,14 @@ python3 -m http.server 5373
 - AI insights every 15 seconds
 
 **Web Demo Features:**
-- ✅ Works on any device (desktop, tablet, phone)
-- ✅ No installation required
-- ✅ Three.js 3D visualization
-- ✅ Real-time WebSocket updates
-- ✅ Responsive design
-- ✅ Perfect for presentations!
+- Works on any device (desktop, tablet, phone)
+- No installation required
+- Three.js 3D visualization
+- Real-time WebSocket updates
+- Responsive design
+- Perfect for presentations!
 
-#### Option B: Swift App (macOS - For Real Hardware) 🔧
+#### Option B: Swift App (macOS - For Real Hardware)
 
 ##### Open in Xcode
 ```bash
@@ -701,10 +701,10 @@ Or double-click `UpperTorso3D.swiftpm` in Finder.
 
 ##### Run the App
 1. Select target: **My Mac**
-2. Press **⌘R** or click ▶️ Run
+2. Press **⌘R** or click Run
 3. App will open and connect to WebSocket automatically
 
-### 6️⃣ Verify Everything Works
+### Verify Everything Works
 
 #### Check Backend Logs
 ```bash
@@ -719,7 +719,7 @@ Or double-click `UpperTorso3D.swiftpm` in Finder.
 
 #### Check Web App
 - Open `http://localhost:5373` in browser
-- Connection status should show "🟢 Connected"
+- Connection status should show "Connected"
 - Pitch values should update in real-time
 - 3D torso should rotate smoothly
 - Posture status should change (GOOD/BAD)
@@ -734,21 +734,21 @@ Or double-click `UpperTorso3D.swiftpm` in Finder.
 
 ---
 
-## 🔌 Hardware Setup
+## Hardware Setup
 
 ### Sensor Placement
 
 ```
-        👤 USER (seated)
+        USER (seated)
         
-    🔴 Arduino #1 (Upper)
-    📍 Placement: Upper back / neck area
+    Arduino #1 (Upper)
+    Placement: Upper back / neck area
        (between shoulder blades, near C7 vertebra)
     
     ━━━━━━━━━━━━━━━━━━━━━━
     
-    🔵 Arduino #2 (Lower)  
-    📍 Placement: Lower back
+    Arduino #2 (Lower)  
+    Placement: Lower back
        (lumbar region, near L3-L5 vertebra)
 ```
 
@@ -794,7 +794,7 @@ The system will now measure posture relative to your calibrated baseline.
 
 ---
 
-## 📡 API Reference
+## API Reference
 
 ### HTTP Endpoints
 
@@ -991,7 +991,7 @@ No client messages required. Server broadcasts automatically.
 
 ---
 
-## 🧪 Developer Guide
+## Developer Guide
 
 ### Running Tests
 
@@ -1111,7 +1111,7 @@ cat backend/Gemini-Integration-Key.env
 
 ---
 
-## 🤝 Contributing
+## Contributing
 
 We welcome contributions! Here are some areas where you can help:
 
@@ -1145,7 +1145,7 @@ We welcome contributions! Here are some areas where you can help:
 
 ---
 
-## 🙏 Acknowledgments
+## Acknowledgments
 
 - **DeltaHacks 12** for the opportunity to build this project
 - **Google Gemini** for AI-powered insights
@@ -1155,7 +1155,7 @@ We welcome contributions! Here are some areas where you can help:
 
 ---
 
-## 🎥 Demo
+## Demo
 
 [Add your demo video/screenshots here]
 
@@ -1163,8 +1163,6 @@ We welcome contributions! Here are some areas where you can help:
 
 <div align="center">
 
-**Your spine will thank you.** 🙌
-
-Made with ☕ and countless hours of coding
+**Your spine will thank you.**
 
 </div>
